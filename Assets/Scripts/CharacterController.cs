@@ -21,10 +21,12 @@ namespace Controllers
         [SerializeField] private float raylength;
         [SerializeField] private LayerMask groundLayer;
         [SerializeField]bool isOnGround;
-        public bool OnGround => isOnGround;
+        public bool OnGround => leftOnGround||rightOnGround;
         private Vector3 prevPosition;
         public Vector3 Velocity => currentWorldVelocity;
         [SerializeField]private bool clampZ;
+        bool leftOnGround;
+        bool rightOnGround;
         bool gravityOn = true;
         private void Start()
         {
@@ -54,6 +56,7 @@ namespace Controllers
         private void Update()
         {
             DetectGroundCollisions();
+            isOnGround = OnGround;
             ExecuteState();
             UpdateMovement();
         }
@@ -63,7 +66,9 @@ namespace Controllers
         }
         private void DetectGroundCollisions()
         {
-            isOnGround = Physics.Raycast(transform.position, Vector3.down, raylength, groundLayer);
+            
+            leftOnGround = Physics.Raycast(transform.position - Vector3.right* 0.5f, Vector3.down, raylength, groundLayer);
+            rightOnGround = Physics.Raycast(transform.position +Vector3.right* 0.5f, Vector3.down, raylength, groundLayer);
         }
         void ExecuteState()
         {
@@ -79,20 +84,21 @@ namespace Controllers
         {
             Vector3 finalMovementOffset = currentMoveOffset;
             Vector3 verticalMovement = Vector3.zero;
-            verticalMovement = GetVerticalVelocity();
+            verticalMovement = ComputeVerticalVelocity();
             finalMovementOffset += verticalMovement;
             if (clampZ)
                 finalMovementOffset.z = 0f;
             ccModule.Move(finalMovementOffset);
             currentMoveOffset = Vector3.zero;
         }
-        Vector3 GetVerticalVelocity()
+        Vector3 ComputeVerticalVelocity()
         {
             if (!isOnGround&&gravityOn)
                 verticalVelocity += ApplyGravity();
             currentWorldVelocity.y += verticalVelocity.y;
             return verticalVelocity*Time.deltaTime;
         }
+        public Vector3 GetVerticalVelocity() { return verticalVelocity; }
         public void SetVerticalVelocity(float velocityY)
         {
             verticalVelocity.y = velocityY;
@@ -120,7 +126,7 @@ namespace Controllers
         {
             gravityOn = true;
         }
-
+        public Vector3 GetPosition() { return transform.position; }
 
     }
 

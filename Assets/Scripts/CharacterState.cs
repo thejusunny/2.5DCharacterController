@@ -64,7 +64,7 @@ namespace Controllers
         }
         public override void Update()
         {
-           
+
             ccModule.SetMoveOffset(Vector3.zero);
             CheckForTranstion(CharacterStateEnum.Moving);
             CheckForTranstion(CharacterStateEnum.Jumping);
@@ -83,7 +83,7 @@ namespace Controllers
 
         public override bool IsReadyForTransition()
         {
-            if (ccModule.Velocity.magnitude <= 0&&ccModule.OnGround)
+            if (ccModule.Velocity.magnitude <= 0 && ccModule.OnGround)
                 return true;
             return false;
         }
@@ -94,29 +94,61 @@ namespace Controllers
     public class Jumping : CharacterState
     {
         Vector2 inputXY;
-        float jumpAirMovementSpeed = 10f;
-        float jumpHeight=5f;
+        float jumpAirMovementSpeed = 4f;
+        float jumpHeight=8f;
+        float horizontalStartVelocityX;
+        float currentJumpDistance;
+        Vector3 jumpStartPosition;
+        bool peekReached = false;
+        float stateTimer;
+        float groundExpiryTime = 0.1f;
+        float maxDistanceOnXLeft;
+        float maxDistanceOnXRight;
+        float maxHorizontalDistance = 10f;
+        float speedOffset = 0f;
         public Jumping(CharacterController cc)
         {
             this.ccModule = cc;
         }
         public override void Update()
         {
-
-            inputXY.x = Input.GetAxis("Horizontal");
+            stateTimer += Time.deltaTime;
+            inputXY.x = GetNormalizedInput(Input.GetAxis("Horizontal"));
             inputXY.y = Input.GetAxis("Vertical");
-            ccModule.SetMoveOffset(new Vector3(inputXY.x, 0f, inputXY.y) * jumpAirMovementSpeed);
-            CheckForTranstion(CharacterStateEnum.Moving);
+            ccModule.SetMoveOffset(new Vector3(inputXY.x, 0f, inputXY.y) * speedOffset);
+            if (stateTimer > groundExpiryTime)
+            {
+                CheckForTranstion(CharacterStateEnum.Moving);
+                CheckForTranstion(CharacterStateEnum.Idle);
+                CheckForTranstion(CharacterStateEnum.Dashing);
+            }
+            Debug.DrawLine(new Vector3(maxDistanceOnXLeft, 0f, 0f), new Vector3(maxDistanceOnXLeft,2f,0f),Color.red);
+            Debug.DrawLine(new Vector3(maxDistanceOnXRight, 0f, 0f), new Vector3(maxDistanceOnXRight, 2f, 0f), Color.red);
+        }
+        public float GetNormalizedInput(float input)
+        {
 
+            return Mathf.CeilToInt(input);
         }
         public override void Enter()
         {
+            horizontalStartVelocityX = Mathf.Abs( ccModule.Velocity.x);
+            Debug.Log("Start vel"+horizontalStartVelocityX);
             float TargetVelocity = Mathf.Sqrt(-2f * jumpHeight * ccModule.GetGravity().y);
             ccModule.SetVerticalVelocity(TargetVelocity);
+            float timeToLand = Mathf.Sqrt(Mathf.Abs( (2 * jumpHeight) / ccModule.GetGravity().y))*2;
+            speedOffset = Mathf.Clamp((jumpAirMovementSpeed + horizontalStartVelocityX), 0, maxHorizontalDistance);
+            maxDistanceOnXLeft = (ccModule.GetPosition().x - speedOffset*timeToLand);
+            maxDistanceOnXRight = (ccModule.GetPosition().x + speedOffset * timeToLand);
+            Debug.Log("TimeToland"+timeToLand);
+            jumpStartPosition = ccModule.GetPosition();
+            currentJumpDistance = 0f;
         }
         public override void Exit()
         {
-
+            horizontalStartVelocityX = 0f;
+            peekReached = false;
+            stateTimer = 0f;
         }
         public override bool IsReadyForTransition()
         {
@@ -131,7 +163,7 @@ namespace Controllers
         Vector2 inputXY;
 
         float dashDistance = 10f;
-        float dashDuration = 0.1f;
+        float dashDuration = 0.17f;
         float dashTimer;
         float prevDistance;
         public Dashing(CharacterController cc)
