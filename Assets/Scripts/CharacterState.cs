@@ -5,14 +5,15 @@ namespace Controllers
 {
     public abstract class CharacterState
     {
-        protected CharacterController ccModule;
+        protected CharacterMotor motor;
+        protected CharacterController controller;
         public abstract void Update();
         public abstract void Enter();
         public abstract void Exit();
         public void CheckForTranstion(CharacterStateEnum stateToCheck)
         {
-            if (ccModule.GetState(stateToCheck).IsReadyForTransition())
-                ccModule.ChangeState(stateToCheck);
+            if (controller.GetState(stateToCheck).IsReadyForTransition())
+                controller.ChangeState(stateToCheck);
         }
         public abstract bool IsReadyForTransition();
     }
@@ -20,18 +21,20 @@ namespace Controllers
     {
         Vector2 inputXY;
         float moveSpeed = 10f;
-        public Moving(CharacterController cc)
+        public Moving(CharacterController controller,CharacterMotor motor)
         {
-            this.ccModule = cc;
+            this.motor = motor;
+            this.controller = controller;
         }
         public override void Update()
         {
             inputXY.x = Input.GetAxis("Horizontal");
             inputXY.y = Input.GetAxis("Vertical");
-            ccModule.SetMoveOffset(new Vector3(inputXY.x, 0f, inputXY.y) * moveSpeed);
-            //CheckForTranstion(CharacterStateEnum.Idle);
+            motor.Velocity.x = inputXY.x * moveSpeed;
+            CheckForTranstion(CharacterStateEnum.Idle);
             CheckForTranstion(CharacterStateEnum.Jumping);
             CheckForTranstion(CharacterStateEnum.Dashing);
+            CheckForTranstion(CharacterStateEnum.AirMovement);
 
         }
         public override void Enter()
@@ -41,12 +44,11 @@ namespace Controllers
 
         public override void Exit()
         {
-            
         }
 
         public override bool IsReadyForTransition()
         {
-            if (Mathf.Abs( ccModule.Velocity.x) >= 0&& ccModule.OnGround)
+            if (Mathf.Abs( Input.GetAxis("Horizontal"))>0 && motor.OnGround)
                 return true;
             return false;
         }
@@ -58,22 +60,23 @@ namespace Controllers
     {
         Vector2 inputXY;
         float moveSpeed = 10f;
-        public Idle(CharacterController cc)
+        public Idle(CharacterController controller,CharacterMotor motor)
         {
-            this.ccModule = cc;
+            this.motor = motor;
+            this.controller = controller;
         }
         public override void Update()
         {
 
-            ccModule.SetMoveOffset(Vector3.zero);
             CheckForTranstion(CharacterStateEnum.Moving);
             CheckForTranstion(CharacterStateEnum.Jumping);
             CheckForTranstion(CharacterStateEnum.Dashing);
+            CheckForTranstion(CharacterStateEnum.AirMovement);
 
         }
         public override void Enter()
         {
-
+            motor.Velocity = Vector3.zero;
         }
 
         public override void Exit()
@@ -83,7 +86,7 @@ namespace Controllers
 
         public override bool IsReadyForTransition()
         {
-            if (ccModule.Velocity.magnitude <= 0 && ccModule.OnGround)
+            if (Mathf.Abs( motor.Velocity.x) <= 0f  && motor.OnGround)
                 return true;
             return false;
         }
@@ -95,7 +98,7 @@ namespace Controllers
     {
         Vector2 inputXY;
         float jumpAirMovementSpeed = 4f;
-        float jumpHeight=8f;
+        float jumpHeight=3f;
         float horizontalStartVelocityX;
         float currentJumpDistance;
         Vector3 jumpStartPosition;
@@ -104,18 +107,20 @@ namespace Controllers
         float groundExpiryTime = 0.1f;
         float maxDistanceOnXLeft;
         float maxDistanceOnXRight;
-        float maxHorizontalDistance = 10f;
+        float maxHorizontalDistance = 8f;
         float speedOffset = 0f;
-        public Jumping(CharacterController cc)
+        public Jumping(CharacterController controller, CharacterMotor motor)
         {
-            this.ccModule = cc;
+            this.motor = motor;
+            this.controller = controller;
         }
         public override void Update()
         {
             stateTimer += Time.deltaTime;
             inputXY.x = GetNormalizedInput(Input.GetAxis("Horizontal"));
-            inputXY.y = Input.GetAxis("Vertical");
-            ccModule.SetMoveOffset(new Vector3(inputXY.x, 0f, inputXY.y) * speedOffset);
+            if (Vector3.Distance(motor.GetPosition(), jumpStartPosition) >= jumpHeight)
+                controller.ChangeState(CharacterStateEnum.AirMovement);
+            motor.Velocity.x = inputXY.x * speedOffset;
             if (stateTimer > groundExpiryTime)
             {
                 CheckForTranstion(CharacterStateEnum.Moving);
@@ -127,21 +132,20 @@ namespace Controllers
         }
         public float GetNormalizedInput(float input)
         {
+            float valueToReturn = input > 0 ? 1 : input < 0 ? -1 : 0;
 
-            return Mathf.CeilToInt(input);
+            return valueToReturn;
         }
         public override void Enter()
         {
-            horizontalStartVelocityX = Mathf.Abs( ccModule.Velocity.x);
-            Debug.Log("Start vel"+horizontalStartVelocityX);
-            float TargetVelocity = Mathf.Sqrt(-2f * jumpHeight * ccModule.GetGravity().y);
-            ccModule.SetVerticalVelocity(TargetVelocity);
-            float timeToLand = Mathf.Sqrt(Mathf.Abs( (2 * jumpHeight) / ccModule.GetGravity().y))*2;
+            horizontalStartVelocityX = Mathf.Abs( motor.Velocity.x);
+            float TargetVelocity = Mathf.Sqrt(-2f * jumpHeight * motor.GetGravity().y);
+            motor.Velocity = Vector3.up* TargetVelocity;
+            float timeToLand = Mathf.Sqrt(Mathf.Abs( (2 * jumpHeight) / motor.GetGravity().y))*2;
             speedOffset = Mathf.Clamp((jumpAirMovementSpeed + horizontalStartVelocityX), 0, maxHorizontalDistance);
-            maxDistanceOnXLeft = (ccModule.GetPosition().x - speedOffset*timeToLand);
-            maxDistanceOnXRight = (ccModule.GetPosition().x + speedOffset * timeToLand);
-            Debug.Log("TimeToland"+timeToLand);
-            jumpStartPosition = ccModule.GetPosition();
+            maxDistanceOnXLeft = (motor.GetPosition().x - speedOffset*timeToLand);
+            maxDistanceOnXRight = (motor.GetPosition().x + speedOffset * timeToLand);
+            jumpStartPosition = motor.GetPosition();
             currentJumpDistance = 0f;
         }
         public override void Exit()
@@ -152,7 +156,7 @@ namespace Controllers
         }
         public override bool IsReadyForTransition()
         {
-            if (Input.GetKey(KeyCode.Space)&&ccModule.OnGround)
+            if (Input.GetButtonDown("Jump")&&motor.OnGround)
                 return true;
             return false;
         }
@@ -166,26 +170,35 @@ namespace Controllers
         float dashDuration = 0.17f;
         float dashTimer;
         float prevDistance;
-        public Dashing(CharacterController cc)
+        float xVelocityEnd;
+        float internalDashVelocity;
+        float dashCoolDownTime = 0.5f;
+        float lastdashTimeStamp;
+        Vector3 dashDirection;
+        public Dashing(CharacterController controller, CharacterMotor motor)
         {
-            this.ccModule = cc;
+            this.motor = motor;
+            this.controller = controller;
         }
         public override void Update()
         {
-   
-            Vector3 dashDirection = inputXY.normalized;
+  
             if (dashTimer <= dashDuration)
             {
                 float currentDistance = (dashTimer / dashDuration) * dashDistance ;
                 float distanceOffset = currentDistance - prevDistance;
-                ccModule.SetMovePosition(distanceOffset * dashDirection);
+                internalDashVelocity = distanceOffset / Time.deltaTime;
+                motor.MoveExact(distanceOffset * dashDirection);
                 prevDistance = currentDistance;
+                xVelocityEnd = motor.Velocity.x/2;
             }
             else
             {
-                ccModule.EnableGravity();
-                CheckForTranstion(CharacterStateEnum.Moving);
-                CheckForTranstion(CharacterStateEnum.Idle);
+                
+                motor.EnableGravity();
+                controller.ChangeState(CharacterStateEnum.AirMovement);
+                //CheckForTranstion(CharacterStateEnum.Moving);
+                //CheckForTranstion(CharacterStateEnum.Idle);
             }
             dashTimer += Time.deltaTime;
         }
@@ -194,17 +207,56 @@ namespace Controllers
             inputXY.x = Input.GetAxis("Horizontal");
             inputXY.y = Input.GetAxis("Vertical");
             inputXY.Normalize();
-            ccModule.DisableGravity();
+            dashDirection = inputXY;
+            motor.DisableGravity();
+            motor.Velocity = Vector3.zero;
         }
         public override void Exit()
         {
+            motor.Velocity = dashDirection * internalDashVelocity/4;
+            lastdashTimeStamp = Time.time;
             dashTimer = 0f;
             prevDistance = 0f;
-  
         }
         public override bool IsReadyForTransition()
         {
-            if (Input.GetKey(KeyCode.LeftShift))
+            if (Input.GetButtonDown("Dash")&& Time.time > lastdashTimeStamp+dashCoolDownTime)
+                return true;
+            return false;
+        }
+
+    }
+    public class Airmovement : CharacterState
+    {
+        Vector2 inputXY;
+        float airMovementSpeed = 5f;
+        float maxHorizontalDistance =8f;
+        public Airmovement(CharacterController controller, CharacterMotor motor)
+        {
+            this.motor = motor;
+            this.controller = controller;
+        }
+        public override void Update()
+        {
+            inputXY.x = Input.GetAxis("Horizontal");
+            inputXY.y = Input.GetAxis("Vertical");
+            motor.Velocity.x = inputXY.x * airMovementSpeed;
+            CheckForTranstion(CharacterStateEnum.Moving);
+            CheckForTranstion(CharacterStateEnum.Idle);
+            CheckForTranstion(CharacterStateEnum.Dashing);
+
+        }
+        public override void Enter()
+        {
+            airMovementSpeed = Mathf.Clamp((airMovementSpeed +Mathf.Abs( motor.Velocity.x)), 0, maxHorizontalDistance);
+        }
+        public override void Exit()
+        {
+          
+        }
+        public override bool IsReadyForTransition()
+        {
+            if (controller.CurrentState!= CharacterStateEnum.Jumping && controller.CurrentState!= CharacterStateEnum.Dashing && !motor.OnGround)
                 return true;
             return false;
         }
