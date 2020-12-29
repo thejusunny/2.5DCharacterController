@@ -9,17 +9,23 @@ public class CharacterMotor : MonoBehaviour
     private Quaternion rotation;
     private Vector3 currentMoveOffset;
     [SerializeField] private Vector3 currentWorldVelocity;
-    [SerializeField] private float raylength;
+    [SerializeField] private float groundRaylength;
+    [SerializeField] private float wallRaylength;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] bool isOnGround;
+    [SerializeField] bool isOnWall;
     [SerializeField] float horizontalDrag = 3f;
     public bool OnGround => leftOnGround || rightOnGround;
+    public bool OnWall => leftWall || rightWall;
     private Vector3 prevPosition;
     public Vector3 Velocity;
     [SerializeField] private bool clampZ;
     bool leftOnGround;
     bool rightOnGround;
+    bool leftWall;
+    bool rightWall;
     bool gravityOn = true;
+    public int WallDirection { get => leftWall ? -1 : rightWall ? 1 : 0; }
     // Start is called before the first frame update
     void Start()
     {
@@ -30,15 +36,22 @@ public class CharacterMotor : MonoBehaviour
     public void UpdateMotor()
     {
         DetectGroundCollisions();
+        DetectWallCollisions();
         isOnGround = OnGround;
+        isOnWall = OnWall;
         UpdateMovement();
     }
     private void DetectGroundCollisions()
     {
-        leftOnGround = Physics.Raycast(transform.position - Vector3.right * 0.5f, Vector3.down, raylength, groundLayer);
-        rightOnGround = Physics.Raycast(transform.position + Vector3.right * 0.5f, Vector3.down, raylength, groundLayer);
+        leftOnGround = Physics.Raycast(transform.position - Vector3.right * 0.5f, Vector3.down, groundRaylength, groundLayer);
+        rightOnGround = Physics.Raycast(transform.position + Vector3.right * 0.5f, Vector3.down, groundRaylength, groundLayer);
     }
-    private void Move(Vector3 movementOffset,float deltaTime)
+    private void DetectWallCollisions()
+    {
+        leftWall = Physics.Raycast(transform.position - Vector3.right * 0.5f, Vector3.left ,wallRaylength, groundLayer);
+        rightWall = Physics.Raycast(transform.position + Vector3.right * 0.5f, Vector3.right, wallRaylength, groundLayer);
+    }
+    private void Move(Vector3 movementOffset, float deltaTime)
     {
         ccModule.Move(movementOffset * deltaTime);
     }
@@ -60,17 +73,7 @@ public class CharacterMotor : MonoBehaviour
         this.Velocity += velocityToAdd;
     }
     public Vector3 GetVelocity() { return Velocity; }
-    //public void SetMoveOffset(Vector3 moveOffset)
-    //{
-    //    currentMoveOffset += moveOffset * Time.deltaTime;
-    //    this.velocity +=moveOffset*Time.deltaTime;
-    //}
-    //public void SetMoveOffsetRaw(Vector3 movePosition)
-    //{
-    //    currentMoveOffset += movePosition;
-    //    this.velocity += movePosition;
-    //}
-    //velocity *= exp(-drag * deltaTime)
+
     void UpdateMovement()
     {
         ApplyGravity(ref Velocity);
@@ -78,19 +81,11 @@ public class CharacterMotor : MonoBehaviour
             Velocity.z = 0f;
         Move(Velocity, Time.deltaTime);
     }
-  
-    public void SetVerticalVelocity(float velocityY)
-    {
-        Velocity.y = velocityY;
-    }
-    public void SetHorizontalVelocity(float velocityX)
-    {
-        Velocity.x = velocityX;
-    }
+
     private void ApplyGravity(ref Vector3 velocity)
     {
         if (!isOnGround && gravityOn)
-            Velocity+= gravityModule.GetGravity() * Time.deltaTime;
+            Velocity += gravityModule.GetGravity() * Time.deltaTime;
     }
 
     public Vector3 GetGravity()
@@ -100,7 +95,9 @@ public class CharacterMotor : MonoBehaviour
     public void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawRay(transform.position, Vector3.down * raylength);
+        Gizmos.DrawRay(transform.position, Vector3.down * groundRaylength);
+        Gizmos.DrawRay(transform.position -Vector3.right * 0.5f, Vector3.left * wallRaylength);
+        Gizmos.DrawRay(transform.position +Vector3.right * 0.5f, Vector3.right * wallRaylength);
     }
     public void DisableGravity()
     {
@@ -110,6 +107,6 @@ public class CharacterMotor : MonoBehaviour
     public void EnableGravity()
     {
         gravityOn = true;
-    } 
+    }
     public Vector3 GetPosition() { return transform.position; }
 }

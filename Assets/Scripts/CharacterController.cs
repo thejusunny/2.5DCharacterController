@@ -6,22 +6,25 @@ namespace Controllers
 {
     public enum CharacterStateEnum
     {
-        Idle, Moving, Jumping, Dashing, AirMovement
+        Idle, Moving, Jumping, Dashing, AirMovement, WallJumping
     };
     public class CharacterController : MonoBehaviour
     {
 
         private CharacterGravity gravityModule;
         private CharacterMotor motor;
+        private InputController inputController;
         private Dictionary<CharacterStateEnum, CharacterState> states;
         [SerializeField] private CharacterStateEnum currentState;
 
         public CharacterStateEnum CurrentState { get => currentState;  }
+        public InputController InputController { get => inputController; }
 
         private void Start()
         {
             motor = GetComponent<CharacterMotor>();
             gravityModule = GetComponent<CharacterGravity>();
+            inputController = GetComponent<InputController>();
             BindStates();
             currentState = CharacterStateEnum.Moving;
         }
@@ -33,10 +36,12 @@ namespace Controllers
             states.Add(CharacterStateEnum.Jumping, new Jumping(this, motor));
             states.Add(CharacterStateEnum.Dashing, new Dashing(this, motor));
             states.Add(CharacterStateEnum.AirMovement, new Airmovement(this, motor));
+            states.Add(CharacterStateEnum.WallJumping, new WallJumping(this, motor));
         }
 
         private void Update()
         {
+            InputController.ReadInputs();
             ExecuteState();
             motor.UpdateMotor();
         }
