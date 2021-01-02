@@ -52,7 +52,7 @@ namespace Controllers
         }
         public override void Enter()
         {
-            inputController.JumpCommand.ClearFrameBuffer();
+            inputController.GetCommad(CommandType.Jump).ClearFrameBuffer();
             horizontalStartVelocityX = Mathf.Abs( motor.Velocity.x);
             float TargetVelocity = Mathf.Sqrt(-2f * jumpHeight * motor.GetGravity().y);
             motor.Velocity = Vector3.up* TargetVelocity;
@@ -71,7 +71,7 @@ namespace Controllers
         }
         public override bool IsReadyForTransition()
         {
-            if (inputController.JumpCommand.isPressed &&motor.OnGround)
+            if (inputController.GetCommad(CommandType.Jump).IsPressed() &&motor.OnGround)
                 return true;
             return false;
         }

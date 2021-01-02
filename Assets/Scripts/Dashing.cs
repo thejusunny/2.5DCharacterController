@@ -14,10 +14,12 @@ namespace Controllers
         float dashCoolDownTime = 0.5f;
         float lastdashTimeStamp;
         Vector3 dashDirection;
+        InputController inputController;
         public Dashing(CharacterController controller, CharacterMotor motor)
         {
             this.motor = motor;
             this.controller = controller;
+            this.inputController = controller.InputController;
         }
         public override void Update()
         {
@@ -62,7 +64,7 @@ namespace Controllers
         }
         public override bool IsReadyForTransition()
         {
-            if (Input.GetButtonDown("Dash")&& Time.time > lastdashTimeStamp+dashCoolDownTime)
+            if (inputController.GetCommad(CommandType.Dash).IsPressed()&& Time.time > lastdashTimeStamp+dashCoolDownTime)
                 return true;
             return false;
         }

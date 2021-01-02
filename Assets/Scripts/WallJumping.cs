@@ -38,7 +38,7 @@ namespace Controllers
         public override void Enter()
         {
             wallDirection = motor.WallDirection;
-            inputController.JumpCommand.ClearFrameBuffer();
+            inputController.GetCommad(CommandType.Jump).ClearFrameBuffer();
         }
         public override void Exit()
         {
@@ -47,7 +47,7 @@ namespace Controllers
         public override bool IsReadyForTransition()
         {
         
-            if (inputController.JumpCommand.isPressed && motor.OnWall)
+            if (inputController.GetCommad(CommandType.Jump).IsPressed() && motor.OnWall)
                 return true;
             return false;
         }

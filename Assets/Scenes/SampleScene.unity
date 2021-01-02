@@ -7518,6 +7518,17 @@ MonoBehaviour:
     currentFrameNo: 0
     isPressed: 0
     buttonName: Jump
+    maxFramesToBuffer: 30
+  dashCommand:
+    currentFrameNo: 0
+    isPressed: 0
+    buttonName: Dash
+    maxFramesToBuffer: 30
+  moveCommand:
+    currentFrameNo: 0
+    isPressed: 0
+    buttonName: 
+    maxFramesToBuffer: 1
 --- !u!1 &1366692318
 GameObject:
   m_ObjectHideFlags: 0

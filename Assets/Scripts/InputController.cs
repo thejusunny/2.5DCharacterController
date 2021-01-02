@@ -1,48 +1,72 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
+public enum CommandType
+{
+    Move,Jump,Dash
+};
 [System.Serializable]
 public class Command
 {
-    public int currentFrameNo;
-    public bool isPressed;
-    public string buttonName;
+    [SerializeField]private int currentFrameNo=0;
+    [SerializeField]private bool isPressed = false;
+    [SerializeField]public string buttonName;
+    [SerializeField]private int maxFramesToBuffer=1;
     public void ClearFrameBuffer()
     {
         isPressed = false;
         currentFrameNo = 0;
     }
+    public void UpdateInput()
+    {
+        if (Input.GetButtonDown(buttonName))
+        {
+           isPressed = true;
+           currentFrameNo = 0;
+        }
+        if (isPressed && currentFrameNo < maxFramesToBuffer)
+        {
+            currentFrameNo++;
+        }
+        else
+        {
+            isPressed = false;
+            currentFrameNo = 0;
+        }
+
+
+    }
+    public bool IsPressed() { return isPressed; }
 }
 
 public class InputController : MonoBehaviour
 {
     [SerializeField] private int maxFramesToBuffer = 10;
     [SerializeField]Command jumpCommand;
-    List<Command> buttonCommands;
+    [SerializeField]Command dashCommand;
+    [SerializeField]Command moveCommand;
+    Dictionary<CommandType,Command> inputCommands;
 
     public Command JumpCommand { get => jumpCommand; }
 
+
     private void Start()
     {
-        jumpCommand.buttonName = "Jump";
+        inputCommands = new Dictionary<CommandType, Command>();
+        inputCommands.Add(CommandType.Jump, jumpCommand);
+        inputCommands.Add(CommandType.Dash, dashCommand);
     }
 
     public void ReadInputs()
     {
-        if (Input.GetButtonDown(jumpCommand.buttonName))
+        foreach (Command command in inputCommands.Values)
         {
-            jumpCommand.isPressed = true;
-            jumpCommand.currentFrameNo = 0;
+            command.UpdateInput();
         }
-        if (jumpCommand.isPressed && jumpCommand.currentFrameNo < maxFramesToBuffer)
-        {
-            jumpCommand.currentFrameNo++;
-        }
-        else
-        {
-            jumpCommand.isPressed = false;
-            jumpCommand.currentFrameNo = 0;
-        }
-
+    }
+    public Command GetCommad(CommandType type)
+    {
+        return inputCommands[type];
     }
 }
