@@ -4,19 +4,21 @@ namespace Controllers
     public class Airmovement : CharacterState
     {
         Vector2 inputXY;
-        float airMovementSpeed = 8f;
-        float maxHorizontalDistance =14f;
-        float movementRegainSpeed = 8f;
-        public Airmovement(CharacterController controller, CharacterMotor motor)
+        AirmovementData airmovementData;
+        float newAirmovementSpeed;
+        public Airmovement(CharacterController controller, CharacterMotor motor, AirmovementData airmovementData)
         {
             this.motor = motor;
             this.controller = controller;
+            this.airmovementData = airmovementData;
         }
         public override void Update()
         {
             inputXY.x = Input.GetAxis("Horizontal");
             inputXY.y = Input.GetAxis("Vertical");
-            motor.Velocity.x = Mathf.Lerp(motor.Velocity.x, inputXY.x * airMovementSpeed,movementRegainSpeed*Time.deltaTime);
+            motor.Velocity.x = Mathf.Lerp(motor.Velocity.x, inputXY.x * newAirmovementSpeed, airmovementData.MovementRegainSpeed * Time.deltaTime);
+            //if (motor.OnGround)
+            //    motor.Velocity.x = 0f;
             CheckForTranstion(CharacterStateEnum.Moving);
             CheckForTranstion(CharacterStateEnum.Idle);
             CheckForTranstion(CharacterStateEnum.Dashing);
@@ -24,11 +26,11 @@ namespace Controllers
         }
         public override void Enter()
         {
-            airMovementSpeed = Mathf.Clamp((airMovementSpeed +Mathf.Abs( motor.Velocity.x)), 0, maxHorizontalDistance);
+            newAirmovementSpeed = Mathf.Clamp((airmovementData.AirMovementSpeed + Mathf.Abs( motor.Velocity.x)), 0, airmovementData.MaxHorizontalDistance);
         }
         public override void Exit()
         {
-          
+            //motor.Velocity = Vector3.zero;
         }
         public override bool IsReadyForTransition()
         {

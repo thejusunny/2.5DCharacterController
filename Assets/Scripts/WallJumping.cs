@@ -4,22 +4,22 @@ namespace Controllers
     public class WallJumping : CharacterState
     {
         Vector2 inputXY;
-        float jumpAirMovementSpeed = 7f;
         float groundExpiryTime = 0.1f;
         float stateTimer;
         int wallDirection;
-        Vector2 wallJumpVelocity = new Vector2(-20, 17f);
+        WallJumpData wallJumpData;
         InputController inputController;
-        public WallJumping(CharacterController controller, CharacterMotor motor)
+        public WallJumping(CharacterController controller, CharacterMotor motor,WallJumpData wallJumpData)
         {
             this.motor = motor;
             this.controller = controller;
             inputController = controller.InputController;
+            this.wallJumpData = wallJumpData;
         }
         public override void Update()
         {
             stateTimer += Time.deltaTime;
-            motor.Velocity = new Vector2( wallJumpVelocity.x *wallDirection,wallJumpVelocity.y);
+            motor.Velocity = new Vector2(wallJumpData.WallJumpVelocity.x *wallDirection, wallJumpData.WallJumpVelocity.y);
             if (stateTimer > groundExpiryTime)
             {
                 CheckForTranstion(CharacterStateEnum.Moving);

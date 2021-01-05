@@ -7288,6 +7288,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   currentState: 0
+  moveData:
+    moveSpeed: 12.81
+  jumpData:
+    jumpAirMovementSpeed: 10
+    jumpHeight: 5
+    maxHorizontalDistance: 20
+  dashData:
+    dashDistance: 5
+    dashDuration: 0.08
+  airmovementData:
+    airMovementSpeed: 10
+    maxHorizontalDistance: 20
+    movementRegainSpeed: 8
+  wallJumpData:
+    wallJumpVelocity: {x: -20, y: 17}
 --- !u!143 &1355804741
 CharacterController:
   m_ObjectHideFlags: 0

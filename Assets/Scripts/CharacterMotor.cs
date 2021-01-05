@@ -19,6 +19,8 @@ public class CharacterMotor : MonoBehaviour
     public bool OnWall => leftWall || rightWall;
     private Vector3 prevPosition;
     public Vector3 Velocity;
+    public Vector3 GlobalVelocity=>Velocity+frameMoveOffset;
+    private Vector3 frameMoveOffset;
     [SerializeField] private bool clampZ;
     bool leftOnGround;
     bool rightOnGround;
@@ -57,35 +59,35 @@ public class CharacterMotor : MonoBehaviour
     }
     public void MoveTo(Vector3 postionToMove)
     {
-        ccModule.Move(postionToMove - transform.position);
+        Vector3 movementOffset = (postionToMove - transform.position);
+        frameMoveOffset += movementOffset;
+
+        //ccModule.Move(postionToMove - transform.position);
     }
     public void MoveExact(Vector3 movementOffset)
     {
-        ccModule.Move(movementOffset);
+        frameMoveOffset += movementOffset;
+        //ccModule.Move(movementOffset);
     }
-    public void SetVelocity(Vector3 velocity)
-    {
-        this.Velocity = velocity;
-
-    }
-    public void AddToVelocity(Vector3 velocityToAdd)
-    {
-        this.Velocity += velocityToAdd;
-    }
-    public Vector3 GetVelocity() { return Velocity; }
 
     void UpdateMovement()
     {
-        ApplyGravity(ref Velocity);
+        Velocity+= ApplyGravity();
         if (clampZ)
+        {
             Velocity.z = 0f;
+            frameMoveOffset.z = 0;
+        }
         Move(Velocity, Time.deltaTime);
+        Move(frameMoveOffset, 1);
+        frameMoveOffset = Vector3.zero;
     }
 
-    private void ApplyGravity(ref Vector3 velocity)
+    private Vector3 ApplyGravity()
     {
         if (!isOnGround && gravityOn)
-            Velocity += gravityModule.GetGravity() * Time.deltaTime;
+            return gravityModule.GetGravity() * Time.deltaTime;
+        return Vector3.zero;
     }
 
     public Vector3 GetGravity()
@@ -102,6 +104,7 @@ public class CharacterMotor : MonoBehaviour
     public void DisableGravity()
     {
         gravityOn = false;
+        
         Velocity.y = 0f;
     }
     public void EnableGravity()

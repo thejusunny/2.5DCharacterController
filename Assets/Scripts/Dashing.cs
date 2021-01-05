@@ -4,9 +4,6 @@ namespace Controllers
     public class Dashing : CharacterState
     {
         Vector2 inputXY;
-
-        float dashDistance = 5f;
-        float dashDuration = 0.12f;
         float dashTimer;
         float prevDistance;
         float xVelocityEnd;
@@ -14,19 +11,21 @@ namespace Controllers
         float dashCoolDownTime = 0.5f;
         float lastdashTimeStamp;
         Vector3 dashDirection;
+        DashData dashData;
         InputController inputController;
-        public Dashing(CharacterController controller, CharacterMotor motor)
+        public Dashing(CharacterController controller, CharacterMotor motor,DashData dashData)
         {
             this.motor = motor;
             this.controller = controller;
             this.inputController = controller.InputController;
+            this.dashData = dashData;
         }
         public override void Update()
         {
   
-            if (dashTimer <= dashDuration)
+            if (dashTimer <= dashData.DashDuration)
             {
-                float currentDistance = (dashTimer / dashDuration) * dashDistance ;
+                float currentDistance = (dashTimer / dashData.DashDuration) * dashData.DashDistance ;
                 float distanceOffset = currentDistance - prevDistance;
                 internalDashVelocity = distanceOffset / Time.deltaTime;
                 motor.MoveExact(distanceOffset * dashDirection);
