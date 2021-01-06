@@ -17,12 +17,15 @@ namespace Controllers
             inputXY.x = Input.GetAxis("Horizontal");
             inputXY.y = Input.GetAxis("Vertical");
             motor.Velocity.x = Mathf.Lerp(motor.Velocity.x, inputXY.x * newAirmovementSpeed, airmovementData.MovementRegainSpeed * Time.deltaTime);
-            //if (motor.OnGround)
-            //    motor.Velocity.x = 0f;
+
+                
             CheckForTranstion(CharacterStateEnum.Moving);
             CheckForTranstion(CharacterStateEnum.Idle);
             CheckForTranstion(CharacterStateEnum.Dashing);
             CheckForTranstion(CharacterStateEnum.WallJumping);
+            if (motor.OnGround)
+                motor.Velocity.x = 0f;
+
         }
         public override void Enter()
         {

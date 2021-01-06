@@ -61,15 +61,12 @@ public class CharacterMotor : MonoBehaviour
     {
         Vector3 movementOffset = (postionToMove - transform.position);
         frameMoveOffset += movementOffset;
-
-        //ccModule.Move(postionToMove - transform.position);
     }
     public void MoveExact(Vector3 movementOffset)
     {
         frameMoveOffset += movementOffset;
         //ccModule.Move(movementOffset);
     }
-
     void UpdateMovement()
     {
         Velocity+= ApplyGravity();

@@ -6,19 +6,19 @@ namespace Controllers
         Vector2 inputXY;
         float dashTimer;
         float prevDistance;
-        float xVelocityEnd;
-        float internalDashVelocity;
         float dashCoolDownTime = 0.5f;
         float lastdashTimeStamp;
         Vector3 dashDirection;
         DashData dashData;
         InputController inputController;
+        float dashSpeed;
         public Dashing(CharacterController controller, CharacterMotor motor,DashData dashData)
         {
             this.motor = motor;
             this.controller = controller;
             this.inputController = controller.InputController;
             this.dashData = dashData;
+            this.dashSpeed = dashData.DashDistance / dashData.DashDuration;
         }
         public override void Update()
         {
@@ -27,18 +27,15 @@ namespace Controllers
             {
                 float currentDistance = (dashTimer / dashData.DashDuration) * dashData.DashDistance ;
                 float distanceOffset = currentDistance - prevDistance;
-                internalDashVelocity = distanceOffset / Time.deltaTime;
                 motor.MoveExact(distanceOffset * dashDirection);
                 prevDistance = currentDistance;
-                xVelocityEnd = motor.Velocity.x/2;
             }
             else
             {
                 
                 motor.EnableGravity();
                 controller.ChangeState(CharacterStateEnum.AirMovement);
-                //CheckForTranstion(CharacterStateEnum.Moving);
-                //CheckForTranstion(CharacterStateEnum.Idle);
+                return;
             }
             dashTimer += Time.deltaTime;
         }
@@ -47,6 +44,22 @@ namespace Controllers
             inputXY.x = Input.GetAxisRaw("Horizontal");
             inputXY.y = Input.GetAxisRaw("Vertical");
             inputXY.Normalize();
+            if (1 - Mathf.Abs(inputXY.x) < 0.07)
+            {
+                inputXY.x = Mathf.Sign(inputXY.x);
+                inputXY.y = 0f;
+            }
+            else if (Mathf.Abs(inputXY.x) > 0.15)
+            {
+                inputXY.x = Mathf.Sign(inputXY.x) * 0.7f;
+                inputXY.y = Mathf.Sign(inputXY.y) * 0.7f;
+            }
+            else
+            {
+                inputXY.x = 0;
+                inputXY.y = Mathf.Sign(inputXY.y);
+            }
+            inputXY.Normalize();// keyboard
             if (inputXY.magnitude <= 0)
                 inputXY.x = 1;
             dashDirection = inputXY;
@@ -55,7 +68,7 @@ namespace Controllers
         }
         public override void Exit()
         {
-            motor.Velocity = dashDirection * internalDashVelocity/2;
+            motor.Velocity = dashDirection * dashSpeed/2.5f;
             lastdashTimeStamp = Time.time;
             dashTimer = 0f;
             prevDistance = 0f;

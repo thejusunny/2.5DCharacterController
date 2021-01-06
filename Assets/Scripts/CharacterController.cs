@@ -98,7 +98,9 @@ namespace Controllers
             CharacterStateEnum executingState = currentState;
             ExecuteState();
             if (executingState != currentState)
+            {
                 return;
+            }
             motor.UpdateMotor();
         }
         public CharacterState GetState(CharacterStateEnum stateToGet)
