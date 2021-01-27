@@ -4,7 +4,7 @@ using UnityEngine;
 
 public enum CommandType
 {
-    Move,Jump,Dash
+    DashDirection,Jump,Dash, Hook
 };
 [System.Serializable]
 public class Command
@@ -12,7 +12,11 @@ public class Command
     [SerializeField]private int currentFrameNo=0;
     [SerializeField]private bool isPressed = false;
     [SerializeField]public string buttonName;
+    [SerializeField]public string horizontalAxis;
+    [SerializeField]public string verticalAxis;
+    [SerializeField]bool axis;
     [SerializeField]private int maxFramesToBuffer=1;
+    Vector2 axisInput;
     public void ClearFrameBuffer()
     {
         isPressed = false;
@@ -20,24 +24,46 @@ public class Command
     }
     public void UpdateInput()
     {
-        if (Input.GetButtonDown(buttonName))
+        if (axis)
         {
-           isPressed = true;
-           currentFrameNo = 0;
-        }
-        if (isPressed && currentFrameNo < maxFramesToBuffer)
-        {
-            currentFrameNo++;
+            if (Mathf.Abs(Input.GetAxis(horizontalAxis)) > 0 || Mathf.Abs(Input.GetAxis(verticalAxis))>0)
+            {
+                axisInput.x = Input.GetAxis(horizontalAxis);
+                axisInput.y = Input.GetAxis(verticalAxis);
+                isPressed = true;
+                currentFrameNo = 0;
+            }
+            if (isPressed && currentFrameNo < maxFramesToBuffer)
+            {
+                currentFrameNo++;
+                //Debug.Log(currentFrameNo+":" + axisInput);
+            }
+            else
+            {
+                isPressed = false;
+                currentFrameNo = 0;
+            }
         }
         else
         {
-            isPressed = false;
-            currentFrameNo = 0;
+            if (Input.GetButtonDown(buttonName))
+            {
+                isPressed = true;
+                currentFrameNo = 0;
+            }
+            if (isPressed && currentFrameNo < maxFramesToBuffer)
+            {
+                currentFrameNo++;
+            }
+            else
+            {
+                isPressed = false;
+                currentFrameNo = 0;
+            }
         }
-
-
     }
     public bool IsPressed() { return isPressed; }
+    public Vector2 GetAxis() { return axisInput; }
 }
 
 public class InputController : MonoBehaviour
@@ -45,17 +71,17 @@ public class InputController : MonoBehaviour
     [SerializeField] private int maxFramesToBuffer = 10;
     [SerializeField]Command jumpCommand;
     [SerializeField]Command dashCommand;
-    [SerializeField]Command moveCommand;
+    [SerializeField]Command dashDirectionCommand;
+    [SerializeField]Command hookCommand;
     Dictionary<CommandType,Command> inputCommands;
-
-    public Command JumpCommand { get => jumpCommand; }
-
 
     private void Start()
     {
         inputCommands = new Dictionary<CommandType, Command>();
         inputCommands.Add(CommandType.Jump, jumpCommand);
         inputCommands.Add(CommandType.Dash, dashCommand);
+        inputCommands.Add(CommandType.Hook, hookCommand);
+        inputCommands.Add(CommandType.DashDirection, dashDirectionCommand);
     }
 
     public void ReadInputs()

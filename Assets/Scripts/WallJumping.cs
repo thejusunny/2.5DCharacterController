@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-namespace Controllers
+namespace Controller
 {
     public class WallJumping : CharacterState
     {
@@ -8,12 +8,8 @@ namespace Controllers
         float stateTimer;
         int wallDirection;
         WallJumpData wallJumpData;
-        InputController inputController;
-        public WallJumping(CharacterController controller, CharacterMotor motor,WallJumpData wallJumpData)
+        public WallJumping(CharacterController controller, CharacterMotor motor,WallJumpData wallJumpData) : base(controller, motor)
         {
-            this.motor = motor;
-            this.controller = controller;
-            inputController = controller.InputController;
             this.wallJumpData = wallJumpData;
         }
         public override void Update()
@@ -37,7 +33,7 @@ namespace Controllers
         }
         public override void Enter()
         {
-            wallDirection = motor.WallDirection;
+            wallDirection = collision.WallDirection;
             inputController.GetCommad(CommandType.Jump).ClearFrameBuffer();
         }
         public override void Exit()
@@ -47,7 +43,7 @@ namespace Controllers
         public override bool IsReadyForTransition()
         {
         
-            if (inputController.GetCommad(CommandType.Jump).IsPressed() && motor.OnWall)
+            if (inputController.GetCommad(CommandType.Jump).IsPressed() && collision.OnWall)
                 return true;
             return false;
         }

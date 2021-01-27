@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-namespace Controllers
+namespace Controller
 {
     public class Dashing : CharacterState
     {
@@ -10,21 +10,48 @@ namespace Controllers
         float lastdashTimeStamp;
         Vector3 dashDirection;
         DashData dashData;
-        InputController inputController;
         float dashSpeed;
-        public Dashing(CharacterController controller, CharacterMotor motor,DashData dashData)
-        {
-            this.motor = motor;
-            this.controller = controller;
-            this.inputController = controller.InputController;
+        Vector3 originalDashDirection;
+        bool ceilingExit;
+        public Dashing(CharacterController controller, CharacterMotor motor,DashData dashData):base(controller,motor)
+        { 
             this.dashData = dashData;
             this.dashSpeed = dashData.DashDistance / dashData.DashDuration;
         }
         public override void Update()
         {
-  
             if (dashTimer <= dashData.DashDuration)
             {
+                if (collision.OnCeiling)
+                {
+
+                    RaycastHit hitInfo = collision.RightCelingHit ? collision.RightCeilingRayHit : collision.LeftCelingHit ? collision.LeftCeilingRayHit : new RaycastHit();
+                    Vector2 dashDirectionAlongNormal = Vector2.zero;
+                    if (originalDashDirection.x < 0)//Left dash
+                    {
+                        if (hitInfo.transform != null)
+                        {
+                            dashDirectionAlongNormal = Vector3.ProjectOnPlane(Vector3.right * -1, hitInfo.normal);
+                      
+                        }
+                        Debug.DrawRay(motor.GetPosition(), dashDirectionAlongNormal * 5f);
+                        //Debug.Break();
+                        Debug.Log("LeftDashCorrection");
+                    }
+                    else if (originalDashDirection.x > 0)//Right dash
+                    {
+                        if (hitInfo.transform != null)
+                        {
+                            dashDirectionAlongNormal = Vector3.ProjectOnPlane(Vector3.right * 1f, hitInfo.normal);
+                        }
+                        Debug.DrawRay(motor.GetPosition(), dashDirectionAlongNormal * 5f);
+                        Debug.DrawRay(motor.GetPosition(), dashDirectionAlongNormal * 5f);
+                        Debug.Log("RightDashCorrection");
+                    }
+                    dashDirection = dashDirectionAlongNormal;
+                }
+                else
+                    dashDirection = originalDashDirection;
                 float currentDistance = (dashTimer / dashData.DashDuration) * dashData.DashDistance ;
                 float distanceOffset = currentDistance - prevDistance;
                 motor.MoveExact(distanceOffset * dashDirection);
@@ -32,7 +59,6 @@ namespace Controllers
             }
             else
             {
-                
                 motor.EnableGravity();
                 controller.ChangeState(CharacterStateEnum.AirMovement);
                 return;
@@ -41,38 +67,33 @@ namespace Controllers
         }
         public override void Enter()
         {
-            inputXY.x = Input.GetAxisRaw("Horizontal");
-            inputXY.y = Input.GetAxisRaw("Vertical");
-            inputXY.Normalize();
-            if (1 - Mathf.Abs(inputXY.x) < 0.07)
-            {
-                inputXY.x = Mathf.Sign(inputXY.x);
-                inputXY.y = 0f;
-            }
-            else if (Mathf.Abs(inputXY.x) > 0.15)
-            {
-                inputXY.x = Mathf.Sign(inputXY.x) * 0.7f;
-                inputXY.y = Mathf.Sign(inputXY.y) * 0.7f;
-            }
-            else
-            {
-                inputXY.x = 0;
-                inputXY.y = Mathf.Sign(inputXY.y);
-            }
+            inputXY = inputController.GetCommad(CommandType.DashDirection).GetAxis();
+            inputXY = CorrectedInput(inputXY);
             inputXY.Normalize();// keyboard
             if (inputXY.magnitude <= 0)
                 inputXY.x = 1;
             dashDirection = inputXY;
+            originalDashDirection = dashDirection;
             motor.DisableGravity();
             motor.Velocity = Vector3.zero;
+            inputController.GetCommad(CommandType.DashDirection).ClearFrameBuffer();
+        }
+        public Vector2 CorrectedInput(Vector2 input)
+        {
+            Vector2 newInput;
+            newInput.x = input.x < -0.3 ? -1 : input.x > 0.3f ? 1 : 0;
+            newInput.y = input.y < -0.3 ? -1 : input.y > 0.3f ? 1 : 0;
+            return newInput;
         }
         public override void Exit()
         {
-            motor.Velocity = dashDirection * dashSpeed/2.5f;
+            if(!ceilingExit)
+                motor.Velocity = dashDirection * dashSpeed/2.5f;
             lastdashTimeStamp = Time.time;
             dashTimer = 0f;
             prevDistance = 0f;
             dashDirection = Vector3.zero;
+            ceilingExit = false;
         }
         public override bool IsReadyForTransition()
         {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Controllers
+namespace Controller
 {
 
     [System.Serializable]
@@ -43,6 +43,19 @@ namespace Controllers
         public float MovementRegainSpeed { get => movementRegainSpeed;}
     }
     [System.Serializable]
+    public class HookData
+    {
+        [SerializeField] private float hookSpeed = 10f;
+        [SerializeField] private float hookMovementRegainSpeed = 5;
+        [SerializeField] private float hookAirmovementSpeed;
+        [SerializeField] AnimationCurve hookTravelCurve;
+
+        public float HookSpeed { get => hookSpeed;  }
+        public float HookMovementRegainSpeed { get => hookMovementRegainSpeed;  }
+        public float HookAirmovementSpeed { get => hookAirmovementSpeed;  }
+        public AnimationCurve HookTravelCurve { get => hookTravelCurve;  }
+    }
+    [System.Serializable]
     public class WallJumpData
     {
         [SerializeField]Vector2 wallJumpVelocity = new Vector2(-20, 17f);
@@ -51,19 +64,20 @@ namespace Controllers
     }
     public enum CharacterStateEnum
     {
-        Idle, Moving, Jumping, Dashing, AirMovement, WallJumping
+        Idle, Moving, Jumping, Dashing, AirMovement, WallJumping, Hooking
     };
     public class CharacterController : MonoBehaviour
     {
-
         private CharacterGravity gravityModule;
         private CharacterMotor motor;
         private InputController inputController;
         private Dictionary<CharacterStateEnum, CharacterState> states;
         [SerializeField] private CharacterStateEnum currentState;
-
+        [SerializeField] private CharacterCollision characterCollision;
+        private CharacterStateEnum prevState;
         public CharacterStateEnum CurrentState { get => currentState;  }
         public InputController InputController { get => inputController; }
+        public CharacterCollision CharacterCollision { get => characterCollision; }
 
         #region StateDataObjects
         [SerializeField] private MoveData moveData;
@@ -71,6 +85,7 @@ namespace Controllers
         [SerializeField] private DashData dashData;
         [SerializeField] private AirmovementData airmovementData;
         [SerializeField] private WallJumpData wallJumpData;
+        [SerializeField] private HookData hookData;
         #endregion
 
         private void Start()
@@ -78,6 +93,8 @@ namespace Controllers
             motor = GetComponent<CharacterMotor>();
             gravityModule = GetComponent<CharacterGravity>();
             inputController = GetComponent<InputController>();
+            characterCollision.Init(this.transform);
+            motor.Init(characterCollision);
             BindStates();
             currentState = CharacterStateEnum.Moving;
         }
@@ -90,6 +107,7 @@ namespace Controllers
             states.Add(CharacterStateEnum.Dashing, new Dashing(this, motor,dashData));
             states.Add(CharacterStateEnum.AirMovement, new Airmovement(this, motor,airmovementData));
             states.Add(CharacterStateEnum.WallJumping, new WallJumping(this, motor,wallJumpData));
+            states.Add(CharacterStateEnum.Hooking, new HookState(this, motor,hookData));
         }
 
         private void Update()
@@ -101,12 +119,14 @@ namespace Controllers
             {
                 return;
             }
+            characterCollision.ProcessCollisions();
             motor.UpdateMotor();
         }
         public CharacterState GetState(CharacterStateEnum stateToGet)
         {
             return states[stateToGet];
         }
+        public CharacterStateEnum GetPrevState() { return prevState; }
 
         void ExecuteState()
         {
@@ -115,10 +135,9 @@ namespace Controllers
         public void ChangeState(CharacterStateEnum targetState)
         {
             states[CurrentState].Exit();
+            prevState = currentState;
             currentState = targetState;
             states[CurrentState].Enter();
         }
-
     }
-
 }
