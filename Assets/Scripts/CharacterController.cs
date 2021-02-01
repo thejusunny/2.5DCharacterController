@@ -88,7 +88,7 @@ namespace Controller
         [SerializeField] private HookData hookData;
         #endregion
 
-        private void Start()
+        private void Awake()
         {
             motor = GetComponent<CharacterMotor>();
             gravityModule = GetComponent<CharacterGravity>();

@@ -3,7 +3,24 @@ using System.Collections.Generic;
 using UnityEngine;
 namespace Controller
 {
+    public class ExternalVelocityResolver//Moving platforms, wind and all the other environmental stuff
+    {
 
+        private CharacterCollision collision;
+        public ExternalVelocityResolver(CharacterCollision collision)
+        {
+            this.collision = collision;
+        }
+        public Vector3 GetExternalVelocity()
+        {
+            Vector3 finalVelocity = Vector3.zero;
+            if (collision.IsOnMovingPlatform)
+            {
+                finalVelocity += collision.PlatformInContact.Velocity;
+            }
+            return finalVelocity;
+        }
+    }
     public class CharacterMotor : MonoBehaviour
     {
         private UnityEngine.CharacterController ccModule;
@@ -19,6 +36,7 @@ namespace Controller
         [SerializeField] private bool clampZ;
         [SerializeField] private float maxFallVelocity = 50;
         bool gravityOn = true;
+        ExternalVelocityResolver externalVelocityResolver;
         // Start is called before the first frame update
         void Start()
         {
@@ -28,6 +46,7 @@ namespace Controller
         public void Init(CharacterCollision collision)
         {
             this.collision = collision;
+            externalVelocityResolver = new ExternalVelocityResolver(collision);
         }
         // Update is called once per frame
         public void UpdateMotor()
@@ -56,6 +75,7 @@ namespace Controller
                 Velocity.z = 0f;
                 frameMoveOffset.z = 0;
             }
+            ExternalVelocity = externalVelocityResolver.GetExternalVelocity();
             Velocity.y = Mathf.Clamp(Velocity.y, -maxFallVelocity, float.PositiveInfinity);
             Move(Velocity, Time.deltaTime);
             Move(ExternalVelocity, Time.deltaTime);
